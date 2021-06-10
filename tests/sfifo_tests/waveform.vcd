@@ -1,0 +1,68 @@
+$date
+	Wed Jun  9 22:52:29 2021
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1ps
+$end
+$scope module sfifo_imp_17D91 $end
+$var wire 1 ! clock $end
+$var wire 1 " receiver_ready $end
+$var wire 1 # receiver_valid $end
+$var wire 32 $ reciever_data [31:0] $end
+$var wire 1 % reset $end
+$var wire 32 & sender_data [31:0] $end
+$var wire 1 ' sender_ready $end
+$var wire 1 ( sender_valid $end
+$scope begin inst $end
+$var wire 1 ) clock $end
+$var wire 1 * read_data $end
+$var wire 1 + reset $end
+$var wire 1 , write_data $end
+$var wire 1 - full $end
+$var wire 1 . empty $end
+$var reg 9 / fill_counter [8:0] $end
+$var reg 8 0 read_pointer [7:0] $end
+$var reg 8 1 write_pointer [7:0] $end
+$upscope $end
+$scope begin receiver $end
+$var wire 32 2 data [31:0] $end
+$var wire 1 3 valid $end
+$var reg 1 4 ready $end
+$upscope $end
+$scope begin sender $end
+$var wire 1 5 ready $end
+$var reg 32 6 data [31:0] $end
+$var reg 1 7 valid $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+$dumpvars
+x7
+bx 6
+z5
+x4
+z3
+bz 2
+bx 1
+bx 0
+bx /
+x.
+x-
+x,
+z+
+x*
+z)
+x(
+z'
+bx &
+z%
+bz $
+z#
+x"
+z!
+$end
+#100001

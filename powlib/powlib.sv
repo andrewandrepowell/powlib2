@@ -32,29 +32,52 @@ module sfifo(clock, reset, receiver, sender);
   parameter type T = logic[31:0];
   parameter integer DEPTH = 32;
   localparam type index = logic[$clog2(DEPTH)-1:0];
+  localparam type amount = logic[$clog2(DEPTH):0];
   input logic clock, reset;
   stream.receive receiver;
   stream.send sender;
   T memory [0: DEPTH-1];
   T data0, data1;
-  index write_pointer, write_plus1_pointer, read_pointer;
+  index write_pointer, read_pointer;
+  amount fill_counter;
   logic write_data, read_data, full, empty, valid0, valid1;
 
-  assign full = write_plus1_pointer==read_pointer;
-  assign empty = write_pointer==read_pointer;
-  assign write_data = valid0&&!full;
-  assign read_data = (!valid1||!sender.valid||sender.ready)&&!empty;
-  assign receiver.ready = !full;
+  assign full = fill_counter==DEPTH;
+  assign empty = fill_counter==0;
+  assign write_data = receiver.valid&&!full;
+  assign read_data = (!sender.valid||sender.ready)&&!empty;
+
+  // Writes the receiver ready.
+  always_ff @(posedge clock) begin
+    if (!reset) begin
+      receiver.ready <= 1;
+    end else begin
+      if (write_data||read_data) begin
+        receiver.ready <= fill_counter<(DEPTH-1);
+      end;
+    end;
+  end;
+
+  // Writes the sender valid.
+  always_ff @(posedge clock) begin
+    if (!reset) begin
+      sender.valid <= 0;
+    end else begin
+      if (read_data) begin
+        sender.valid <= 1;
+      end else if (sender.ready) begin
+        sender.valid <= 0;
+      end;
+    end;
+  end;
 
   // Implements the write counter.
   always_ff @(posedge clock) begin
     if (!reset) begin
-      write_plus1_pointer <= 1;
       write_pointer <= 0;
     end else begin
       if (write_data) begin
-        write_plus1_pointer <= (write_plus1_pointer==(DEPTH-1)) ? 0 : write_plus1_pointer+1;
-        write_pointer <= write_plus1_pointer;
+        write_pointer <= (write_pointer==(DEPTH-1)) ? 0 : write_pointer+1;
       end;
     end;
   end;
@@ -70,17 +93,16 @@ module sfifo(clock, reset, receiver, sender);
     end;
   end;
 
-  // Register input.
+  // Implements the fill counter.
   always_ff @(posedge clock) begin
     if (!reset) begin
-      valid0 <= 0;
+      fill_counter <= 0;
     end else begin
-      if (!full) begin
-        valid0 <= receiver.valid;
+      if (write_data&&!read_data) begin
+        fill_counter <= fill_counter+1;
+      end else if (!write_data&&read_data) begin
+        fill_counter <= fill_counter-1;
       end;
-    end;
-    if (!full) begin
-      data0 <= receiver.data;
     end;
   end;
 
@@ -88,59 +110,14 @@ module sfifo(clock, reset, receiver, sender);
   // Please note this only becomes BRAM once its size is large enough.
   always_ff @(posedge clock) begin
     if (write_data) begin
-      memory[write_pointer] <= data0;
+      memory[write_pointer] <= receiver.data;
     end;
     if (read_data) begin
-      data1 <= memory[read_pointer];
+      sender.data <= memory[read_pointer];
     end;
   end;
 
-  // Determine when the data is valid.
-  always_ff @(posedge clock) begin
-    if (!reset) begin
-      valid1 <= 0;
-    end else begin
-      if (read_data) begin
-        valid1 <= 1;
-      end else if (sender.ready) begin
-        valid1 <= 0;
-      end;
-    end;
-  end;
-
-  // Register output.
-  always_ff @(posedge clock) begin
-    if (!reset) begin
-      sender.valid <= 0;
-    end else begin
-      if (sender.ready||read_data) begin
-        sender.valid <= valid1;
-      end;
-    end;
-    if (sender.ready||read_data) begin
-      sender.data <= data1;
-    end;
-  end;
 
 endmodule
 
 
-module sfifo_imp(clock, reset, reciever_data, receiver_valid, receiver_ready, sender_data, sender_valid, sender_ready);
-  parameter type T = logic[31:0];
-  parameter integer DEPTH = 256;
-  input logic clock, reset, receiver_valid, sender_ready;
-  output logic receiver_ready, sender_valid;
-  input T reciever_data;
-  output T sender_data;
-
-  assign receiver.data = reciever_data;
-  assign receiver.valid = receiver_valid;
-  assign receiver_ready = receiver.ready;
-  assign sender_data = sender.data;
-  assign sender_valid = sender.valid;
-  assign sender.ready = sender_ready;
-
-  stream #(.T(T)) receiver();
-  stream #(.T(T)) sender();
-  sfifo #(.T(T),.DEPTH(DEPTH)) inst (.clock(clock),.reset(reset),.receiver(receiver),.sender(sender));
-endmodule

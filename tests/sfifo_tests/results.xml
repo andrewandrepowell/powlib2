@@ -1,0 +1,6 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1623297149" />
+    <testcase name="basic_test" classname="sfifo_tests" file="/home/thelandofgiants/Documents/powlib2/tests/sfifo_tests/sfifo_tests.py" lineno="4" time="0.0003819465637207031" sim_time_ns="100.001" ratio_time="261819.3472559301" />
+  </testsuite>
+</testsuites>
