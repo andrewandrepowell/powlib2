@@ -1,18 +1,7 @@
-module sfifo_imp(clock, reset, reciever_data, receiver_valid, receiver_ready, sender_data, sender_valid, sender_ready);
+module sfifo_imp();
   parameter type T = logic[31:0];
   parameter integer DEPTH = 256;
-  input logic clock, reset, receiver_valid, sender_ready;
-  output logic receiver_ready, sender_valid;
-  input T reciever_data;
-  output T sender_data;
-
-  assign receiver.data = reciever_data;
-  assign receiver.valid = receiver_valid;
-  assign receiver_ready = receiver.ready;
-  assign sender_data = sender.data;
-  assign sender_valid = sender.valid;
-  assign sender.ready = sender_ready;
-
+  logic clock, reset;
 
   initial begin
     $dumpfile("waveform.vcd");

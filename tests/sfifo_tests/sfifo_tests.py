@@ -1,6 +1,6 @@
 from cocotb.decorators import test
 from cocotb.triggers import Timer
-from pyvertb import SynchDriver
+from powlib.interfaces import StreamWriteSynchDriver
 
 
 @test()

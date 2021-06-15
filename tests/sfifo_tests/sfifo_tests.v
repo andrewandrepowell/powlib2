@@ -1,28 +1,7 @@
-module sfifo_imp_17D91 (
-	clock,
-	reset,
-	reciever_data,
-	receiver_valid,
-	receiver_ready,
-	sender_data,
-	sender_valid,
-	sender_ready
-);
+module sfifo_imp_17D91;
 	parameter integer DEPTH = 256;
-	input wire clock;
-	input wire reset;
-	input wire receiver_valid;
-	input wire sender_ready;
-	output wire receiver_ready;
-	output wire sender_valid;
-	input wire [31:0] reciever_data;
-	output wire [31:0] sender_data;
-	assign receiver.data = reciever_data;
-	assign receiver.valid = receiver_valid;
-	assign receiver_ready = receiver.ready;
-	assign sender_data = sender.data;
-	assign sender_valid = sender.valid;
-	assign sender.ready = sender_ready;
+	wire clock;
+	wire reset;
 	initial begin
 		$dumpfile("waveform.vcd");
 		$dumpvars(3, sfifo_imp_17D91);
