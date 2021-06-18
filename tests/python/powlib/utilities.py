@@ -1,6 +1,6 @@
 from collections.abc import Awaitable
 from typing import Generic, TypeVar, Iterator, Optional
-from cocotb import Event
+from cocotb.triggers import Event
 
 
 T = TypeVar("T")

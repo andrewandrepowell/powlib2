@@ -1,9 +1,9 @@
 from pyvertb import SynchDriver, Transaction, Interface, Process, Channel
-.utilities import Future
+from .utilities import Future
 from typing import TypeVar, Type
 from dataclasses import fields
 from cocotb.handle import SimHandleBase
-from cocotb.trigger import RisingEdge, Event, ReadWrite
+from cocotb.triggers import RisingEdge, Event, ReadWrite
 
 
 SendTransaction = TypeVar("DataTransaction", bound=Transaction)
@@ -37,7 +37,7 @@ class StreamWriteSynchDriver(Process, SynchDriver[StreamInterface, SendTransacti
         self._run_channel = Channel[T]()
         self._run_event = Event()
 
-    async def drive(self, transaction: SendTransaction) -> None:
+    async def write(self, transaction: SendTransaction) -> None:
         await RisingEdge(self.interface.clock)
         self._run_channel.try_send(transaction)
         await self._run_event.wait()
@@ -66,7 +66,7 @@ class StreamReadSynchDriver(Process, SynchDriver[StreamInterface, None, ReceiveT
         self._run_event = Event()
         self._run_future = Future[T]()
 
-    async def drive(self, transaction=None) -> ReceiveTransaction:
+    async def read(self, transaction=None) -> ReceiveTransaction:
         await RisingEdge(self.interface.clock)
         self._run_event.set()
         return await self._run_future
