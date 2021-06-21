@@ -1,8 +1,8 @@
 from pyvertb import SynchDriver, Transaction, Interface, Process, Channel
+from pyvertb.cocotb_compat import LogicHandle
 from .utilities import Future
 from typing import TypeVar, Type
 from dataclasses import fields
-from cocotb.handle import SimHandleBase
 from cocotb.triggers import RisingEdge, Event, ReadWrite
 
 
@@ -11,9 +11,9 @@ ReceiveTransaction = TypeVar("ReceiveTransaction", bound=Transaction)
 
 
 class StreamInterface(Interface):
-    clock: SimHandleBase
-    valid: SimHandleBase
-    ready: SimHandleBase
+    clock: LogicHandle
+    valid: LogicHandle
+    ready: LogicHandle
 
 
 def _write(interface: Interface, transaction: SendTransaction, in_transaction_type: Type[SendTransaction]) -> None:
@@ -28,16 +28,22 @@ def _read(interface: Interface, out_transaction_type: Type[ReceiveTransaction]) 
     return out_transaction_type(**transaction_as_dictionary)
 
 
-class StreamWriteSynchDriver(Process, SynchDriver[StreamInterface, SendTransaction, None]):
+class StreamSender(Process, SynchDriver[StreamInterface, SendTransaction, None]):
     out_transaction_type = None
 
     def __init__(self, interface: StreamInterface, in_transaction_type: Type[SendTransaction]):
+        super().__init__()
         self.interface = interface
         self.in_transaction_type = in_transaction_type
-        self._run_channel = Channel[T]()
+        self._run_channel = Channel[SendTransaction]()
         self._run_event = Event()
+        interface.valid.value = 0
 
-    async def write(self, transaction: SendTransaction) -> None:
+    async def drive(self, transaction: SendTransaction) -> ReceiveTransaction:
+        """Needs to be defined for SynchDriver."""
+        await self.send(transaction)
+
+    async def send(self, transaction: SendTransaction) -> None:
         await RisingEdge(self.interface.clock)
         self._run_channel.try_send(transaction)
         await self._run_event.wait()
@@ -57,16 +63,22 @@ class StreamWriteSynchDriver(Process, SynchDriver[StreamInterface, SendTransacti
             await RisingEdge(self.interface.clock)
 
 
-class StreamReadSynchDriver(Process, SynchDriver[StreamInterface, None, ReceiveTransaction]):
+class StreamReceiver(Process, SynchDriver[StreamInterface, None, ReceiveTransaction]):
     in_transaction_type = None
 
     def __init__(self, interface: StreamInterface, out_transaction_type: Type[ReceiveTransaction]) -> None:
+        super().__init__()
         self.interface = interface
         self.out_transaction_type = out_transaction_type
         self._run_event = Event()
-        self._run_future = Future[T]()
+        self._run_future = Future[ReceiveTransaction]()
+        interface.ready.value = 0
 
-    async def read(self, transaction=None) -> ReceiveTransaction:
+    async def drive(self, transaction: SendTransaction=None) -> ReceiveTransaction:
+        """Needs to be defined for SynchDriver."""
+        await self.receive()
+
+    async def receive(self) -> ReceiveTransaction:
         await RisingEdge(self.interface.clock)
         self._run_event.set()
         return await self._run_future

@@ -28,12 +28,17 @@ interface channel (clock, reset);
 endinterface
 
 
-module sfifo(clock, reset, receiver, sender);
+module sfifo(clock, reset, receiver, sender, available);
+  /* It's worth pointing out the receiver.ready and
+  available are not decoupled, which could lead to poor
+  routing performance. This can be resolved externally with
+  registering available and increasing RESERVED. */
   parameter type T = logic[31:0];
   parameter integer DEPTH = 32;
+  parameter integer RESERVED = 0;
   localparam type index = logic[$clog2(DEPTH)-1:0];
   localparam type amount = logic[$clog2(DEPTH):0];
-  input logic clock, reset;
+  input logic clock, reset, available;
   stream.receive receiver;
   stream.send sender;
   T memory [0: DEPTH-1];
@@ -46,21 +51,12 @@ module sfifo(clock, reset, receiver, sender);
   assign empty = fill_counter==0;
   assign write_data = receiver.valid&&!full;
   assign read_data = (!sender.valid||sender.ready)&&!empty;
-
-  // Writes the receiver ready.
-  always_ff @(posedge clock) begin
-    if (!reset) begin
-      receiver.ready <= 1;
-    end else begin
-      if (write_data||read_data) begin
-        receiver.ready <= fill_counter<(DEPTH-1);
-      end;
-    end;
-  end;
+  assign receiver.ready = !full;
+  assign available = fill_counter<(DEPTH-RESERVED);
 
   // Writes the sender valid.
   always_ff @(posedge clock) begin
-    if (!reset) begin
+    if (reset) begin
       sender.valid <= 0;
     end else begin
       if (read_data) begin
@@ -73,7 +69,7 @@ module sfifo(clock, reset, receiver, sender);
 
   // Implements the write counter.
   always_ff @(posedge clock) begin
-    if (!reset) begin
+    if (reset) begin
       write_pointer <= 0;
     end else begin
       if (write_data) begin
@@ -84,7 +80,7 @@ module sfifo(clock, reset, receiver, sender);
 
   // Implements the read counter.
   always_ff @(posedge clock) begin
-    if (!reset) begin
+    if (reset) begin
       read_pointer <= 0;
     end else begin
       if (read_data) begin
@@ -95,7 +91,7 @@ module sfifo(clock, reset, receiver, sender);
 
   // Implements the fill counter.
   always_ff @(posedge clock) begin
-    if (!reset) begin
+    if (reset) begin
       fill_counter <= 0;
     end else begin
       if (write_data&&!read_data) begin
