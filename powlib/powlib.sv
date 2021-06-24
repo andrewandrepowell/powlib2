@@ -18,21 +18,6 @@ interface stream;
 endinterface
 
 
-interface channel (clock, reset);
-  parameter type T = logic[31:0];
-  parameter integer DEPTH = 32;
-  parameter integer RESERVED = 0;
-  input logic clock;
-  input logic reset;
-  logic available;
-
-  stream #(.T(T)) sender();
-  stream #(.T(T)) receiver();
-  sfifo #(.T(T),.DEPTH(DEPTH)) inst (.clock(clock),.reset(reset),.receiver(sender),.sender(receiver),.available(available));
-
-endinterface
-
-
 module sfifo(clock, reset, receiver, sender, available);
   /* It's worth pointing out the receiver.ready and
   available are not decoupled, which could lead to poor
